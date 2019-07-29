@@ -63,6 +63,10 @@ new_testing <- training[-index2, ]
 We can then build the different models that can be considered in order to predict the outcome of the variable.  
 In order to win computational time and efficiency, only the major models that are known to provide accurate results will be considered.  
 
+## Cross validation
+
+The cross validation is directly computed within the corresponding functions.
+
 ## Random Forest
 
 ```{r cache = TRUE}
@@ -71,7 +75,8 @@ rf_fit <- train(
   method = "rf",
   data = new_training,
   allowParallel = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  trControl = trainControl(method = "cv", number = 5) # Cross Validation
 ) # creating the model
 my_rf <- predict(rf_fit, new_testing) # predicting the values of the testing set
 my_confusion_rf <- confusionMatrix(my_rf, new_testing$classe) # getting the results
@@ -85,7 +90,8 @@ gbm_fit <- train(
   classe ~ .,
   method = "gbm",
   data = new_training,
-  verbose = FALSE
+  verbose = FALSE,
+  trControl = trainControl(method = "cv", number = 5) # Cross Validation
 ) # creating the model
 my_gbm <- predict(gbm_fit, new_testing) # predicting the values of the testing set
 my_confusion_gbm <- confusionMatrix(my_gbm, new_testing$classe) # getting the results
@@ -98,7 +104,8 @@ my_accuracy_gbm <- sum(diag(my_confusion_gbm$table))/sum(my_confusion_gbm$table)
 rpart_fit <- train(
   classe ~ .,
   method = "rpart",
-  data = new_training
+  data = new_training,
+  trControl = trainControl(method = "cv", number = 5) # Cross Validation
 ) # creating the model
 my_rpart <- predict(rpart_fit, new_testing) # predicting the values of the testing set
 my_confusion_rpart <- confusionMatrix(my_rpart, new_testing$classe) # getting the results
