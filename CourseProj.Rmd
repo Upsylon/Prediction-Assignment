@@ -1,0 +1,129 @@
+---
+title: "Assignment 3"
+author: "Grandadam_Patrik"
+date: "29/07/2019"
+output: html_document
+---
+
+# Set up
+
+First, we can load the libraries and upload the data that we are going to use.
+
+## Loading library 
+
+```{r setup, include=FALSE}
+library(caret)
+```
+
+## Setting the seed for reproducibility
+
+```{r}
+set.seed(123456)
+```
+
+
+## Loading the data
+
+The first step consist of loading the data. Please ensure the working directory points to the location of the different files.  
+
+```{r}
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+original_training <- training # copy that will never be changed
+original_testing <- testing # copy that will never be changed
+```
+
+## Data modification
+
+We have to ensure the outcome data are of the good type.
+
+```{r}
+training$classe <- as.factor(training$classe)
+```
+
+Then, we can also delete the variables that are not going to be used in the analysis, because they are "nearZero" (no real impact on the outcome) or because they are useless (the first columns of the dataframe).
+
+```{r}
+training <- training[, -nearZeroVar(training)] # removing nearZero variables
+training <- training[-c(1:5)] # removing useless variables
+index1 <- apply(!is.na(training), 2, sum) > nrow(training) * 0.8 # removing rows with more than 80% NA
+training <- training[, index1]
+```
+
+In order to also delete all the variables that have a looooot of NA, we can preprocess the data with the corresponding function of the *caret* package:  
+
+```{r}
+index2 <- createDataPartition(y = training$classe, p = 0.7, list = FALSE)
+new_training <- training[index2, ]
+new_testing <- training[-index2, ]
+```
+
+# Modellisation
+
+We can then build the different models that can be considered in order to predict the outcome of the variable.  
+In order to win computational time and efficiency, only the major models that are known to provide accurate results will be considered.  
+
+## Random Forest
+
+```{r cache = TRUE}
+rf_fit <- train(
+  classe ~ .,
+  method = "rf",
+  data = new_training,
+  allowParallel = TRUE,
+  verbose = FALSE
+) # creating the model
+my_rf <- predict(rf_fit, new_testing) # predicting the values of the testing set
+my_confusion_rf <- confusionMatrix(my_rf, new_testing$classe) # getting the results
+my_accuracy_rf <- sum(diag(my_confusion_rf$table))/sum(my_confusion_rf$table) # getting the accuracy
+```
+
+# Boosting
+
+```{r cache = TRUE}
+gbm_fit <- train(
+  classe ~ .,
+  method = "gbm",
+  data = new_training,
+  verbose = FALSE
+) # creating the model
+my_gbm <- predict(gbm_fit, new_testing) # predicting the values of the testing set
+my_confusion_gbm <- confusionMatrix(my_gbm, new_testing$classe) # getting the results
+my_accuracy_gbm <- sum(diag(my_confusion_gbm$table))/sum(my_confusion_gbm$table) # getting the accuracy
+```
+
+# Decision tree
+
+```{r cache = TRUE}
+rpart_fit <- train(
+  classe ~ .,
+  method = "rpart",
+  data = new_training
+) # creating the model
+my_rpart <- predict(rpart_fit, new_testing) # predicting the values of the testing set
+my_confusion_rpart <- confusionMatrix(my_rpart, new_testing$classe) # getting the results
+my_accuracy_rpart <- sum(diag(my_confusion_rpart$table))/sum(my_confusion_rpart$table) # getting the accuracy
+```
+
+# Predicting the "classe" of the people from the "real" testing set 
+
+## Checking the accuracy of each models
+
+```{r}
+my_accuracy_rf
+my_accuracy_gbm
+my_accuracy_rpart
+```
+
+## Predicting with the best model
+
+We select the best model amongst all tested models to predict the final outcome. In our case, it is the random forest.
+
+```{r}
+final_predictions <- predict(rf_fit, testing)
+final_predictions
+```
+
+
+
+
